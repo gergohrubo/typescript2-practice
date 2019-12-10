@@ -1,34 +1,35 @@
 // src/pages/controller.ts
-import { JsonController, Get, Put, Body, Param, Post, HttpCode } from 'routing-controllers'
-import pagesById, { Page } from './data'
+import { JsonController, Get, Put, Body, Param, Post, HttpCode, NotFoundError } from 'routing-controllers'
+import Page from './entity'
 
 
-type PageList = Page[]
+//type PageList = Page[]
 // this makes sure a class is marked as controller that always returns JSON
 // perfect for our REST API
 @JsonController()
 export default class PageController {
   @Get("/pages")
-  allPages(): PageList {
-    return Object.values(pagesById)
+  allPages(): void {
+    //return Page
   }
 
   @Put('/pages/:id')
-  updatePage(
+  async updatePage(
     @Param('id') id: number,
-    @Body() body: Partial<Page>
-  ): Page {
-    console.log(`Incoming PUT body param:`, body)
-    return pagesById[id]
+    @Body() update: Partial<Page>
+  ) {
+    const page = await Page.findOne(id)
+    if (!page) throw new NotFoundError('Cannot find page')
+
+    return Page.merge(page, update).save()
   }
 
   @Post('/pages')
   @HttpCode(201)
   createPage(
-    @Body() body: Page
-  ): Page {
-    console.log(`Incoming POST body param:`, body)
-    return body
+    @Body() page: Page
+  ) {
+    return page.save()
   }
 
   // this markes a method as endpoint
@@ -36,9 +37,8 @@ export default class PageController {
   // request with :id being a variable parameter
   @Get('/pages/:id')
   getPage(
-    // this decorator retrieves the ID parameter from the url
     @Param('id') id: number
-  ): Page {
-    return pagesById[id]
+  ) {
+    return Page.findOne(id)
   }
 }
